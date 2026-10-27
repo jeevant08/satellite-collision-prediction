@@ -1,4 +1,4 @@
-# =============================================================
+﻿# =============================================================
 #  heap.py — Member 1's File
 #  TASK: Implement a Max-Heap (Priority Queue) for collision ranking
 # =============================================================
@@ -14,7 +14,7 @@
 #       We only need TOP-K most dangerous, not a full sorted list.
 #
 #    Q: Why Max-Heap and not Min-Heap?
-#    A: Priority = 1/distance. Smallest distance → largest priority.
+#    A: Priority = 1/distance. Smallest distance -> largest priority.
 #       The MAX of (1/distance) = the MINIMUM distance = highest risk.
 #       So a Max-Heap naturally places the most dangerous pair on top.
 #
@@ -28,19 +28,18 @@
 # =============================================================
 
 
-# ── TODO (Member 1): Implement the MaxHeap class ─────────────
 class MaxHeap:
     """
     A Max-Heap (Priority Queue) that ranks collision risk pairs.
 
     Each element stored is a dict:
         {
-            'sat1'    : Satellite,
-            'sat2'    : Satellite,
-            'distance': float        ← smaller distance = higher risk
+            "sat1"    : Satellite,
+            "sat2"    : Satellite,
+            "distance": float        <- smaller distance = higher risk
         }
 
-    Priority of an element = 1 / element['distance']
+    Priority of an element = 1 / element["distance"]
     The element with SMALLEST distance sits at the TOP (root).
     """
 
@@ -48,14 +47,11 @@ class MaxHeap:
         # Internal array — index 0 is the top (max priority)
         self._heap = []
 
-    # ── TODO: size property ──────────────────────────────────
     @property
     def size(self) -> int:
         """Returns the number of elements in the heap."""
-        # TODO: implement
-        raise NotImplementedError("Member 1: implement size property")
+        return len(self._heap)
 
-    # ── TODO: insert(item) ───────────────────────────────────
     def insert(self, item: dict) -> None:
         """
         Inserts a collision risk pair into the heap.
@@ -67,18 +63,17 @@ class MaxHeap:
         Time Complexity: O(log N)
 
         Args:
-            item: dict with keys 'sat1', 'sat2', 'distance'
+            item: dict with keys "sat1", "sat2", "distance"
         """
-        # TODO: implement
-        raise NotImplementedError("Member 1: implement insert(item)")
+        self._heap.append(item)
+        self._heapify_up(len(self._heap) - 1)
 
-    # ── TODO: extract_max() ──────────────────────────────────
     def extract_max(self) -> dict | None:
         """
         Removes and returns the highest-priority item (min distance = max risk).
 
         ALGORITHM:
-            1. If heap is empty → return None
+            1. If heap is empty -> return None
             2. Swap self._heap[0] with self._heap[-1]
             3. Pop self._heap[-1] — this is our result
             4. Call self._heapify_down(0) to restore heap property
@@ -87,21 +82,30 @@ class MaxHeap:
         Time Complexity: O(log N)
 
         Returns:
-            dict {'sat1', 'sat2', 'distance'} or None if empty
+            dict {"sat1", "sat2", "distance"} or None if empty
         """
-        # TODO: implement
-        raise NotImplementedError("Member 1: implement extract_max()")
+        if self.size == 0:
+            return None
 
-    # ── TODO: peek() ─────────────────────────────────────────
+        # Move max to end, then pop it
+        self._swap(0, self.size - 1)
+        max_item = self._heap.pop()
+
+        # Restore heap property from root
+        if self.size > 0:
+            self._heapify_down(0)
+
+        return max_item
+
     def peek(self) -> dict | None:
         """
         Returns the top item WITHOUT removing it.
         Time Complexity: O(1)
         """
-        # TODO: implement
-        raise NotImplementedError("Member 1: implement peek()")
+        if self.size == 0:
+            return None
+        return self._heap[0]
 
-    # ── TODO: extract_all() ──────────────────────────────────
     def extract_all(self) -> list:
         """
         Extracts all items in priority order (highest first).
@@ -110,10 +114,11 @@ class MaxHeap:
         Returns:
             list of dicts sorted by priority (most dangerous first)
         """
-        # TODO: keep calling extract_max() until heap is empty
-        raise NotImplementedError("Member 1: implement extract_all()")
+        result = []
+        while self.size > 0:
+            result.append(self.extract_max())
+        return result
 
-    # ── TODO: _heapify_up(index) ─────────────────────────────
     def _heapify_up(self, index: int) -> None:
         """
         Bubbles element at `index` UP until heap property is restored.
@@ -128,10 +133,14 @@ class MaxHeap:
 
         Time Complexity: O(log N)
         """
-        # TODO: implement
-        raise NotImplementedError("Member 1: implement _heapify_up(index)")
+        while index > 0:
+            parent_idx = (index - 1) // 2
+            if self._priority(self._heap[index]) > self._priority(self._heap[parent_idx]):
+                self._swap(index, parent_idx)
+                index = parent_idx
+            else:
+                break
 
-    # ── TODO: _heapify_down(index) ───────────────────────────
     def _heapify_down(self, index: int) -> None:
         """
         Pushes element at `index` DOWN until heap property is restored.
@@ -154,13 +163,27 @@ class MaxHeap:
 
         Time Complexity: O(log N)
         """
-        # TODO: implement
-        raise NotImplementedError("Member 1: implement _heapify_down(index)")
+        while True:
+            left    = 2 * index + 1
+            right   = 2 * index + 2
+            largest = index
+
+            if left < self.size and self._priority(self._heap[left]) > self._priority(self._heap[largest]):
+                largest = left
+
+            if right < self.size and self._priority(self._heap[right]) > self._priority(self._heap[largest]):
+                largest = right
+
+            if largest != index:
+                self._swap(index, largest)
+                index = largest
+            else:
+                break
 
     # ── HELPERS: already implemented — do NOT modify ─────────
     def _priority(self, item: dict) -> float:
-        """Priority = 1/distance. Smaller distance → higher priority."""
-        return 1.0 / item['distance'] if item['distance'] > 0 else float('inf')
+        """Priority = 1/distance. Smaller distance -> higher priority."""
+        return 1.0 / item["distance"] if item["distance"] > 0 else float("inf")
 
     def _swap(self, i: int, j: int) -> None:
         self._heap[i], self._heap[j] = self._heap[j], self._heap[i]
