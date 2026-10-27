@@ -11,7 +11,7 @@ A real-time **Space Situational Awareness (SSA)** system that predicts and prior
 | Member | Focus Area | Assigned Files | Git Commit Prefix |
 | :--- | :--- | :--- | :--- |
 | **Member 1** | **DSA Core & Geometry** | `python/satellite.py`<br>`python/kdtree.py`<br>`python/heap.py` | `[Member1] feat: ...` |
-| **Member 2** | **3D Space Visualization** | `static/js/visualizer3d.js`<br>`static/js/treeVisualizer.js` | `[Member2] feat: ...` |
+| **Member 2** | **Space & DSA Visualization** | `static/js/visualizer2d.js`<br>`static/js/treeVisualizer.js`<br>`static/js/visualizer3d.js` | `[Member2] feat: ...` |
 | **Member 3** | **Complexity & Analytics** | `python/bruteforce.py`<br>`python/analytics.py` | `[Member3] feat: ...` |
 | **Member 4** | **UI/UX & Integration** | `templates/index.html`<br>`static/css/styles.css`<br>`static/js/dashboard.js`<br>`static/js/main.js`<br>`app.py` | `[Member4] feat: ...` |
 

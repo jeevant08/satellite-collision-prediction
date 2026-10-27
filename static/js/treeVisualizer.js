@@ -50,9 +50,9 @@ const BOUND = 10000;
 
 // Color mapping: X (Red), Y (Green), Z (Blue)
 const AXIS_COLORS = {
-  x: 0xff4757, // Red
-  y: 0x2ed573, // Green
-  z: 0x4f8ef7  // Blue
+  x: 0x3b82f6, // Blue (X)
+  y: 0x10b981, // Green (Y)
+  z: 0x8b5cf6  // Purple (Z)
 };
 
 // ── Stats tracking for faculty demo ─────────────────────────
@@ -224,9 +224,9 @@ export function highlightSearchPath(treeNode, queryPoint, radius) {
   // Draw lines connecting visited nodes in traversal order
   if (visitedNodes.length >= 2) {
     const pathMat = new THREE.LineBasicMaterial({
-      color: 0x00f2fe,
+      color: 0x3b82f6,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.8,
       linewidth: 2
     });
     const pathGeo = new THREE.BufferGeometry().setFromPoints(visitedNodes);
@@ -234,13 +234,13 @@ export function highlightSearchPath(treeNode, queryPoint, radius) {
     searchPathGroup.add(pathLine);
   }
 
-  // Mark visited nodes with cyan spheres
+  // Mark visited nodes with blue spheres
   visitedNodes.forEach(pos => {
     const visitGeo = new THREE.SphereGeometry(60, 8, 8);
     const visitMat = new THREE.MeshBasicMaterial({
-      color: 0x00f2fe,
+      color: 0x3b82f6,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.7
     });
     const visitMesh = new THREE.Mesh(visitGeo, visitMat);
     visitMesh.position.copy(pos);

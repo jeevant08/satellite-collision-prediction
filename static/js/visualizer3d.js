@@ -69,7 +69,7 @@ export function initScene(containerId) {
 
   // 1. Scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x050714);
+  scene.background = new THREE.Color(0x0a0e17);
 
   // 2. Camera
   const width = container.clientWidth;
@@ -92,10 +92,10 @@ export function initScene(containerId) {
   controls.minDistance = 500;
 
   // 5. Lighting
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
   scene.add(ambientLight);
 
-  const dirLight = new THREE.DirectionalLight(0x4f8ef7, 1.2);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
   dirLight.position.set(5000, 10000, 7500);
   scene.add(dirLight);
 
@@ -200,10 +200,9 @@ function createTooltipElement(container) {
   tooltipEl.style.cssText = `
     position: absolute;
     pointer-events: none;
-    background: rgba(5, 7, 20, 0.92);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(79, 142, 247, 0.5);
-    border-radius: 8px;
+    background: #111827;
+    border: 1px solid #334155;
+    border-radius: 6px;
     padding: 8px 12px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.72rem;
@@ -211,8 +210,8 @@ function createTooltipElement(container) {
     display: none;
     z-index: 100;
     white-space: nowrap;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-    line-height: 1.6;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    line-height: 1.5;
   `;
   container.style.position = 'relative';
   container.appendChild(tooltipEl);
@@ -242,8 +241,8 @@ function onMouseMove(event) {
     const mesh = intersects[0].object;
     const sat = mesh.userData.satData;
     if (sat) {
-      const typeColor = sat.type === 'active' ? '#4f8ef7' :
-                        sat.type === 'debris' ? '#94a3b8' : '#ffa502';
+      const typeColor = sat.type === 'active' ? '#3b82f6' :
+                        sat.type === 'debris' ? '#94a3b8' : '#f59e0b';
       const typeLabel = sat.type.toUpperCase();
 
       tooltipEl.innerHTML = `
@@ -294,9 +293,9 @@ export function renderSatellites(satellites) {
   clearDangerRadiusSpheres();
 
   // Materials based on type
-  const activeMaterial = new THREE.MeshStandardMaterial({ color: 0x4f8ef7, roughness: 0.3, metalness: 0.8 });
-  const debrisMaterial = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8, metalness: 0.2 });
-  const rocketMaterial = new THREE.MeshStandardMaterial({ color: 0xffa502, roughness: 0.4, metalness: 0.6 });
+  const activeMaterial = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.4, metalness: 0.4 });
+  const debrisMaterial = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.7, metalness: 0.2 });
+  const rocketMaterial = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4, metalness: 0.3 });
 
   satellites.forEach(sat => {
     let mat = activeMaterial;
@@ -341,7 +340,7 @@ export function highlightRisks(riskPairs) {
   if (!riskPairs || riskPairs.length === 0) return;
 
   const riskIds = new Set();
-  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff4757, linewidth: 2, transparent: true, opacity: 0.85 });
+  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2, transparent: true, opacity: 0.85 });
 
   // Map of satellite id to object mesh
   const meshMap = new Map();
@@ -364,8 +363,8 @@ export function highlightRisks(riskPairs) {
     }
   });
 
-  // Highlight at-risk satellites in glowing red
-  const threatMaterial = new THREE.MeshBasicMaterial({ color: 0xff4757 });
+  // Highlight at-risk satellites in clean red
+  const threatMaterial = new THREE.MeshBasicMaterial({ color: 0xef4444 });
   satelliteMeshGroup.children.forEach(mesh => {
     if (riskIds.has(mesh.userData.id)) {
       mesh.material = threatMaterial;

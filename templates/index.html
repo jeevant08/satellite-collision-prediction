@@ -1,44 +1,22 @@
-<!-- =============================================================
-  index.html — Member 4's File
-  TASK: 3-Panel Space Situational Awareness Dashboard Layout
-=============================================================
-
-  RUBRIC COVERAGE:
-    (c) Live Demo               — Full interactive UI for presentation
-    (e) Individual Contribution — Member 4 HTML structure & layout
-
-  FACULTY QUESTIONS TO PREPARE:
-    Q: Why use a 3-panel layout?
-    A: Separates user controls (Left), real-time 3D spatial context (Center),
-       and quantitative DSA metrics/priority rankings (Right) for maximum clarity.
-
-    Q: How does the UI handle edge cases?
-    A: Controls restrict invalid input, status alerts inform users when N=0, N=1,
-       or no threats exist within the specified radius.
-
-  HOW TO CONTRIBUTE:
-    git add templates/index.html
-    git commit -m "[Member4] feat: build 3-panel UI layout with glassmorphism dashboard"
-============================================================= -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="AegisOrbit — Real-time 3D Satellite Collision Prediction System using K-D Tree spatial search and Max-Heap priority ranking for Space Situational Awareness.">
+  <meta name="description" content="AegisOrbit — Satellite Collision Prediction System using K-D Tree spatial search and Max-Heap priority queue for Space Situational Awareness.">
   <meta name="keywords" content="satellite collision prediction, K-D Tree, space situational awareness, DSA, orbital mechanics">
   <meta name="author" content="AegisOrbit Team">
   <title>AegisOrbit | Satellite Collision Prediction System</title>
   
-  <!-- Google Fonts: Exo 2 & JetBrains Mono -->
+  <!-- Typography: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/static/css/styles.css">
   
-  <!-- CDN Dependencies: Three.js & Chart.js -->
+  <!-- Dependencies: Three.js & Chart.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -49,19 +27,14 @@
   <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-spinner-wrap">
       <div class="loading-ring"></div>
-      <p class="loading-text" id="loadingText">Initializing Orbital Engine…</p>
+      <p class="loading-text" id="loadingText">Initializing Simulation Engine...</p>
     </div>
   </div>
 
   <!-- Top Navigation Bar -->
   <header class="top-nav">
-    <div class="brand">
-      <div class="radar-pulse"></div>
-      <h1 class="nav-title">AEGIS<span class="highlight">ORBIT</span></h1>
-      <span class="badge">3D K-D Tree &amp; Max-Heap Engine</span>
-    </div>
     <div class="nav-center-stats">
-      <div class="nav-stat" title="Current satellite count">
+      <div class="nav-stat" title="Current orbital objects count">
         <span class="nav-stat-label">OBJECTS</span>
         <span class="nav-stat-val" id="navStatObjects">0</span>
       </div>
@@ -71,14 +44,10 @@
         <span class="nav-stat-val danger" id="navStatRisks">0</span>
       </div>
       <div class="nav-stat-divider"></div>
-      <div class="nav-stat" title="K-D Tree speedup over brute force">
+      <div class="nav-stat" title="K-D Tree speedup factor over brute force">
         <span class="nav-stat-label">SPEEDUP</span>
         <span class="nav-stat-val success" id="navStatSpeedup">--</span>
       </div>
-    </div>
-    <div class="system-status" id="systemStatus">
-      <span class="status-dot online" id="statusDot"></span>
-      <span class="status-text" id="statusText">SYSTEM READY</span>
     </div>
   </header>
 
@@ -94,7 +63,7 @@
 
       <div class="control-group">
         <label for="satelliteCount">
-          Satellite Count (N)
+          Object Count (N)
           <span class="val-badge" id="satelliteCountVal">250</span>
         </label>
         <input type="range" id="satelliteCount" min="0" max="2500" step="25" value="250" class="slider">
@@ -120,19 +89,19 @@
 
       <div class="button-stack">
         <button id="btnGenerate" class="btn btn-secondary">
-          <span class="btn-icon">⚡</span> Generate Satellites
+          Generate Objects
         </button>
-        <button id="btnSimulate" class="btn btn-primary glow-btn">
-          <span class="btn-icon">🛰️</span> Run Collision Check
+        <button id="btnSimulate" class="btn btn-primary">
+          Detect Collisions
         </button>
       </div>
 
       <div class="toggle-row">
-        <button id="btnToggleAnimation" class="btn btn-outline btn-sm" title="Pause/Resume orbit animation">
-          <span class="btn-icon">⏸️</span> <span id="animToggleLabel">Pause Orbits</span>
+        <button id="btnToggleAnimation" class="btn btn-outline btn-sm" title="Pause or resume orbital motion">
+          <span id="animToggleLabel">Pause Simulation</span>
         </button>
-        <button id="btnToggleRadii" class="btn btn-outline btn-sm hidden" id="btnToggleRadii" title="Show/Hide danger radius spheres">
-          <span class="btn-icon">🔴</span> <span id="radiiToggleLabel">Show Radii</span>
+        <button id="btnToggleRadii" class="btn btn-outline btn-sm hidden" title="Toggle danger radius indicators">
+          <span id="radiiToggleLabel">Toggle Danger Radii</span>
         </button>
       </div>
 
@@ -140,61 +109,83 @@
 
       <div class="panel-header">
         <h3>K-D Tree Partitioning</h3>
-        <span class="subtitle">Spatial Visualizer</span>
+        <span class="subtitle">Spatial Subdivisions</span>
       </div>
 
       <div class="button-stack">
         <button id="btnStepTree" class="btn btn-outline">
-          <span class="btn-icon">📐</span> Step Split Planes
+          Step Partition Level
         </button>
         <button id="btnClearPlanes" class="btn btn-text">
-          Reset Partition Planes
+          Reset Partitions
         </button>
       </div>
 
       <div class="tree-depth-indicator">
-        <span>Visualized Depth: </span>
-        <span id="currentDepthLabel" class="bold-stat">0</span>
-        <span class="depth-badge" id="depthAxisLabel"></span>
+        <span>Active Depth Level: </span>
+        <span id="currentDepthLabel" class="bold-stat">2</span>
+        <span class="depth-badge" id="depthAxisLabel">Y</span>
       </div>
 
       <hr class="panel-divider">
 
       <div class="panel-header">
-        <h3>DSA Benchmarks</h3>
-        <span class="subtitle">O(N²) vs O(N log N)</span>
+        <h3>Algorithm Benchmarks</h3>
+        <span class="subtitle">Brute Force O(N²) vs K-D Tree O(N log N)</span>
       </div>
 
       <button id="btnRunBenchmark" class="btn btn-accent">
-        <span class="btn-icon">📊</span> Run Benchmark Suite
+        Run Benchmark Suite
       </button>
 
       <!-- Status banner for edge cases -->
       <div id="statusAlert" class="status-alert hidden"></div>
     </aside>
 
-    <!-- CENTER PANEL: 3D Orbital Space Viewport -->
+    <!-- CENTER PANEL: Data Structure Visualizer Viewport -->
     <section class="center-panel viewport-container" id="viewportContainer">
-      <div id="canvas3d" class="webgl-canvas"></div>
       
-      <!-- Overlay controls on viewport -->
-      <div class="viewport-hud">
-        <div class="hud-item">
-          <span class="hud-label">CAMERA:</span>
-          <span class="hud-val">OrbitControls (Rotate / Zoom)</span>
+      <!-- Top View Mode Switcher -->
+      <div class="view-mode-bar">
+        <div class="view-mode-tabs">
+          <button class="view-tab active" id="tab2DMap" data-view="2d-map">2D K-D Tree Space Map</button>
+          <button class="view-tab" id="tab2DTree" data-view="2d-tree">2D Tree Hierarchy</button>
+          <button class="view-tab" id="tab3DOrbit" data-view="3d-orbit">3D Orbital View</button>
         </div>
-        <div class="hud-legend">
-          <span class="legend-dot active-dot"></span> Active
-          <span class="legend-dot debris-dot"></span> Debris
-          <span class="legend-dot rocket-dot"></span> Rocket Body
-          <span class="legend-dot risk-dot"></span> Collision Risk
+        <div class="view-mode-actions">
+          <button class="btn-canvas-action" id="btnResetView" title="Reset pan & zoom to fit space">Fit View</button>
         </div>
       </div>
 
-      <!-- Viewport click hint -->
-      <div class="viewport-hint" id="viewportHint">
-        Click a risk card to focus camera
+      <!-- Viewport Elements -->
+      <div class="viewport-stage">
+        <!-- 1. 2D K-D Space Partition Canvas (Default active) -->
+        <canvas id="canvas2d" class="viewport-canvas"></canvas>
+
+        <!-- 2. 2D Tree Hierarchy Graph -->
+        <div id="treeHierarchyContainer" class="tree-hierarchy-container hidden"></div>
+
+        <!-- 3. 3D WebGL Orbit Canvas -->
+        <div id="canvas3d" class="webgl-canvas hidden"></div>
       </div>
+
+      <!-- Inspector / Pruning info bar -->
+      <div class="viewport-info-strip" id="viewModeInfo">
+        Click any node to inspect K-D Tree search &amp; branch pruning. Drag to pan, scroll to zoom.
+      </div>
+
+      <!-- Clean Technical HUD Legend -->
+      <div class="viewport-hud">
+        <div class="hud-legend">
+          <span class="legend-item"><span class="legend-box sat-box"></span> Satellite (Active)</span>
+          <span class="legend-item"><span class="legend-box debris-box"></span> Debris (Inactive)</span>
+          <span class="legend-item"><span class="legend-box rocket-box"></span> Rocket Body</span>
+          <span class="legend-item"><span class="legend-box risk-box"></span> Collision Risk (&le; R)</span>
+          <span class="legend-item"><span class="legend-line x-line"></span> X-Split Line</span>
+          <span class="legend-item"><span class="legend-line y-line"></span> Y-Split Line</span>
+        </div>
+      </div>
+
     </section>
 
     <!-- RIGHT PANEL: Risk Dashboard & Live Metrics -->
@@ -227,7 +218,7 @@
           <span class="comp-label">BF Comparisons</span>
           <span class="comp-value danger-text" id="statBFComps">--</span>
         </div>
-        <div class="comp-arrow">→</div>
+        <div class="comp-arrow">&rarr;</div>
         <div class="comp-item">
           <span class="comp-label">KD Nodes Visited</span>
           <span class="comp-value success-text" id="statKDComps">--</span>
@@ -242,7 +233,6 @@
         </div>
         <div class="risk-list" id="riskList">
           <div class="empty-state">
-            <span class="empty-icon">🛡️</span>
             <p>Run collision check to identify proximity threats.</p>
           </div>
         </div>
@@ -259,8 +249,7 @@
         <div class="chart-wrapper">
           <canvas id="benchmarkChart"></canvas>
           <div class="chart-placeholder" id="chartPlaceholder">
-            <span class="empty-icon">📊</span>
-            <p>Run benchmark suite to see complexity comparison.</p>
+            <p>Run benchmark suite to generate empirical complexity proof.</p>
           </div>
         </div>
       </div>
@@ -278,6 +267,7 @@
   </main>
 
   <!-- JavaScript Modules -->
+  <script type="module" src="/static/js/visualizer2d.js"></script>
   <script type="module" src="/static/js/visualizer3d.js"></script>
   <script type="module" src="/static/js/treeVisualizer.js"></script>
   <script type="module" src="/static/js/dashboard.js"></script>

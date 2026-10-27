@@ -1,4 +1,4 @@
-﻿# =============================================================
+# =============================================================
 #  kdtree.py — Member 1's File
 #  TASK: Implement a 3D K-D Tree for spatial nearest-neighbour search
 # =============================================================
@@ -205,17 +205,22 @@ def tree_to_dict(node) -> dict | None:
     """
     Serialises the K-D Tree to a nested dict for sending to the JS frontend.
     Used by app.py -> /api/tree endpoint.
+    Includes id, name, type, and coordinates so frontend can distinguish
+    satellites and debris in data structure views.
     """
     if node is None:
         return None
     return {
         "point": {
-            "id": node.point.id,
-            "x":  node.point.x,
-            "y":  node.point.y,
-            "z":  node.point.z,
+            "id":   node.point.id,
+            "name": getattr(node.point, "name", f"OBJ-{node.point.id:03d}"),
+            "type": getattr(node.point, "type", "active"),
+            "x":    round(node.point.x, 2),
+            "y":    round(node.point.y, 2),
+            "z":    round(node.point.z, 2),
         },
         "axis":  node.axis,
         "left":  tree_to_dict(node.left),
         "right": tree_to_dict(node.right),
     }
+
