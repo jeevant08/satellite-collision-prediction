@@ -2,43 +2,7 @@
 #  kdtree.py — Member 1's File
 #  TASK: Implement a 3D K-D Tree for spatial nearest-neighbour search
 # =============================================================
-#
-#  RUBRIC COVERAGE:
-#    (a) Data Structure Justification — YOU explain WHY K-D Tree
-#    (b) Implementation Strategy     — YOU explain implementation choices
-#    (c) Live Demo                   — the core search engine
-#    (d) Time Complexity             — O(N log N) build, O(log N) search
-#
-#  FACULTY QUESTIONS TO PREPARE:
-#
-#    Q: Why K-D Tree over a flat list/array?
-#    A: List = O(N^2) all-pairs. K-D Tree = O(log N) radius search
-#       by pruning branches whose bounding box exceeds the radius.
-#
-#    Q: Why not a hash map / dictionary?
-#    A: Hash maps can't do spatial radius queries. They need exact keys.
-#       Spatial proximity requires geometric partitioning -> K-D Tree.
-#
-#    Q: Why not a Quad-tree or Oct-tree?
-#    A: Quad-tree = 2D only. Oct-tree is similar to K-D Tree but
-#       K-D Tree is simpler to implement and equally efficient for 3D.
-#
-#    Q: What is the exact time complexity?
-#    A: Build : O(N log N)  — sort N items at each of log N levels
-#       Search: O(log N) avg — prune branches via splitting plane test
-#       Space : O(N)         — one node per satellite
-#
-#    Q: Mathematical proof of O(log N) search?
-#    A: Tree height h = log2(N) (balanced via median split).
-#       At each node, check: |target[axis] - node[axis]| > radius?
-#       If YES -> skip entire subtree (saves 2^(h-level) nodes).
-#       Worst case O(sqrt(N)) in k=3 dimensions, but O(log N) in practice.
-#
-#  HOW TO CONTRIBUTE:
-#    git add python/kdtree.py
-#    git commit -m "[Member1] feat: implement build_kd_tree with median split"
-#    git commit -m "[Member1] feat: implement radius_search with branch pruning"
-# =============================================================
+
 
 from satellite import euclidean_3d
 
