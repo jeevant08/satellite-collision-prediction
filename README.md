@@ -1,15 +1,12 @@
-# AegisOrbit — Satellite Collision Prediction System
+#  Satellite Collision Prediction System
 
-[![DSA Evaluation](https://img.shields.io/badge/DSA-Lab%20Evaluation%203-blue.svg)](https://github.com/jeevant08/satellite-collision-prediction)
-[![Tech Stack](https://img.shields.io/badge/Stack-Python%20%7C%20Flask%20%7C%20Three.js%20%7C%20Chart.js-00f2fe.svg)](https://github.com/jeevant08/satellite-collision-prediction)
 
 A real-time **Space Situational Awareness (SSA)** system that predicts and prioritizes orbital satellite collisions. Built for **DSA Lab Evaluation 3 (10 Marks)** using a **3D K-D Tree** for spatial nearest-neighbor search and an **Array-backed Max-Heap Priority Queue** for inverse-distance risk ranking.
 
 ---
 
-## 👥 Team Member Roles & File Ownership
+##  Team Member Roles & File Ownership
 
-To maximize marks under **Rubric (e) Individual Contribution & GitHub Proof**, each member must clone the repository, work on their assigned branch, and make commits using their own GitHub account.
 
 | Member | Focus Area | Assigned Files | Git Commit Prefix |
 | :--- | :--- | :--- | :--- |
@@ -20,15 +17,6 @@ To maximize marks under **Rubric (e) Individual Contribution & GitHub Proof**, e
 
 ---
 
-## 📊 Rubric Breakdown (10 Marks Total)
-
-| Component | Marks | Responsible | Key Deliverable & Faculty Defense |
-| :--- | :---: | :--- | :--- |
-| **(a) Data Structure Justification** | 2 | **Member 1** | Explain why 3D K-D Tree ($O(\log N)$) vs Flat Array ($O(N^2)$) or Hash Map. |
-| **(b) Implementation Strategy** | 2 | **Member 1** | Balanced median split; Array Max-Heap for $O(\log N)$ extraction vs $O(N \log N)$ sorting. |
-| **(c) Live Demo & Edge Cases** | 2 | **ALL** | Handle $N=0$, $N=1$, $\text{radius}=0$, dense clusters without crashing. |
-| **(d) Time Complexity Analysis** | 2 | **Member 3** | Benchmark curve: $O(N^2)$ parabola vs $O(N \log N)$ near-linear scaling proof. |
-| **(e) GitHub Contribution** | 2 | **ALL** | Verifiable commit history and PR graph from 4 distinct accounts. |
 
 ---
 
@@ -70,7 +58,7 @@ git push -u origin <your_branch_name>
 
 ---
 
-## 🚀 Running the Application
+##  Running the Application
 
 ### Prerequisites
 - Python 3.8+ installed.
