@@ -23,51 +23,86 @@
 //    git commit -m "[Member4] feat: wire main.js simulation pipeline and module orchestration"
 // =============================================================
 
-import { initScene, renderSatellites, highlightRisks } from './visualizer3d.js';
+import {
+  initScene,
+  renderSatellites,
+  highlightRisks,
+  showDangerRadiusSpheres,
+  toggleAnimation,
+  getAnimationState,
+  focusOnSatellite
+} from './visualizer3d.js';
+
 import { showSplittingPlanes, clearPlanes } from './treeVisualizer.js';
-import { 
-  initControls, 
-  updateLiveStats, 
-  renderRiskList, 
-  showStatusMessage, 
-  renderComparisonChart 
+
+import {
+  initControls,
+  updateLiveStats,
+  updateComparisonStats,
+  renderRiskList,
+  showStatusMessage,
+  renderComparisonChart,
+  renderComplexityTable,
+  setSystemBusy,
+  setBtnLoading,
+  updateDepthLabel,
+  updateAnimToggleBtn,
+  setRadiiToggleVisible,
+  updateRadiiToggleBtn,
+  hideLoadingOverlay
 } from './dashboard.js';
 
-let currentTreeData = null;
-let currentDepth = 0;
-let satelliteCount = 250;
+// ── App State ─────────────────────────────────────────────────
+let currentTreeData    = null;
+let currentDepth       = 0;
+let satelliteCount     = 250;
+let lastRiskPairs      = [];
+let lastRadius         = 800;
+let showingRadii       = false;
 
+// ── Bootstrap ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Initialize 3D orbital space scene
   initScene('canvas3d');
 
-  // 2. Wire control callbacks
+  // 2. Wire all control callbacks
   initControls({
-    onGenerate: handleGenerateSatellites,
-    onSimulate: handleSimulateCollision,
-    onStepTree: handleStepTreePlanes,
-    onClearPlanes: handleClearPlanes,
-    onBenchmark: handleRunBenchmark
+    onGenerate:         handleGenerateSatellites,
+    onSimulate:         handleSimulateCollision,
+    onStepTree:         handleStepTreePlanes,
+    onClearPlanes:      handleClearPlanes,
+    onBenchmark:        handleRunBenchmark,
+    onToggleAnimation:  handleToggleAnimation,
+    onToggleRadii:      handleToggleRadii
   });
 
-  // 3. Initial generation on load
+  // 3. Dismiss loading overlay and auto-generate initial satellites
+  hideLoadingOverlay('System Ready');
   handleGenerateSatellites(satelliteCount);
 });
 
+// ── Handlers ──────────────────────────────────────────────────
+
 /**
- * Handles satellite generation API call.
+ * STEP 1-2: Generates N satellites and rebuilds the K-D Tree.
+ * Edge cases N=0 and N=1 are handled explicitly.
+ * @param {number} count
  */
 async function handleGenerateSatellites(count) {
   satelliteCount = count;
-  showStatusMessage('info', `Generating ${count} orbital objects...`);
-  
+  lastRiskPairs  = [];
+  showingRadii   = false;
+  setRadiiToggleVisible(false);
+
   // Edge Case: N = 0
   if (count === 0) {
     renderSatellites([]);
     highlightRisks([]);
     renderRiskList([]);
-    updateLiveStats(0, 0, '--');
-    showStatusMessage('warning', 'Edge Case: N = 0. No satellites in orbit.');
+    updateLiveStats(0, 0, null);
+    updateComparisonStats(0);
+    showStatusMessage('warning', '⚠ Edge Case: N = 0. No satellites in orbit.');
+    currentTreeData = null;
     return;
   }
 
@@ -76,6 +111,9 @@ async function handleGenerateSatellites(count) {
     showStatusMessage('info', 'Edge Case: N = 1. A single satellite cannot collide.');
   }
 
+  setBtnLoading('btnGenerate', true);
+  setSystemBusy(true, 'GENERATING…');
+
   try {
     const res = await fetch('/api/satellites', {
       method: 'POST',
@@ -83,38 +121,56 @@ async function handleGenerateSatellites(count) {
       body: JSON.stringify({ count: count })
     });
     const data = await res.json();
-    
+
     renderSatellites(data.satellites);
     highlightRisks([]);
     renderRiskList([]);
-    updateLiveStats(data.count, 0, '--');
-    
+    updateLiveStats(data.count, 0, null);
+    updateComparisonStats(data.count);
+
     // Fetch tree structure for visualizer
-    fetchTree();
-    
+    await fetchTree();
+
     if (count > 1) {
-      showStatusMessage('info', `Successfully generated ${data.count} satellites.`);
+      showStatusMessage('info', `✓ Generated ${data.count} orbital objects. K-D Tree built.`);
     }
   } catch (err) {
     console.error('Error generating satellites:', err);
-    showStatusMessage('warning', 'Backend connection pending. Run `python app.py`.');
+    showStatusMessage('warning', '⚡ Backend offline. Run `python app.py` to start the server.');
+  } finally {
+    setBtnLoading('btnGenerate', false);
+    setSystemBusy(false);
   }
 }
 
 /**
- * Executes collision detection via K-D Tree & Max-Heap ranking.
+ * STEP 3-7: Runs K-D Tree radius search and Max-Heap ranking.
+ * Risk pairs are rendered in the right panel and highlighted in 3D.
+ * @param {number} radius - Danger threshold in km
  */
 async function handleSimulateCollision(radius) {
+  lastRadius = radius;
+
   // Edge Case: Danger radius = 0
   if (radius === 0) {
     highlightRisks([]);
     renderRiskList([]);
-    updateLiveStats(satelliteCount, 0, '--');
-    showStatusMessage('info', 'Danger radius is 0 km. No proximity risks detected.');
+    lastRiskPairs = [];
+    showingRadii  = false;
+    setRadiiToggleVisible(false);
+    updateLiveStats(satelliteCount, 0, null);
+    showStatusMessage('info', 'Edge Case: Danger radius = 0 km. No proximity risks possible.');
     return;
   }
 
-  showStatusMessage('info', `Scanning spatial proximity within ${radius} km radius...`);
+  if (satelliteCount === 0) {
+    showStatusMessage('warning', 'Generate satellites first before running the collision check.');
+    return;
+  }
+
+  setBtnLoading('btnSimulate', true);
+  setSystemBusy(true, 'SCANNING…');
+  showStatusMessage('info', `Scanning spatial proximity within ${radius} km…`);
 
   try {
     const res = await fetch('/api/simulate', {
@@ -124,23 +180,40 @@ async function handleSimulateCollision(radius) {
     });
     const data = await res.json();
 
-    highlightRisks(data.risk_pairs);
-    renderRiskList(data.top_risks);
-    updateLiveStats(satelliteCount, data.total_risks, '--');
+    lastRiskPairs = data.risk_pairs || [];
+
+    // Step 5-6: Render 3D highlights
+    highlightRisks(lastRiskPairs);
+
+    // Step 7: Render right-panel risk cards with camera-focus callback
+    renderRiskList(data.top_risks, (sat1Id, sat2Id) => {
+      focusOnSatellite(sat1Id);
+    });
+
+    updateLiveStats(satelliteCount, data.total_risks, null);
+    updateComparisonStats(satelliteCount);
+
+    // Show radii toggle if there are risks
+    setRadiiToggleVisible(lastRiskPairs.length > 0);
+    updateRadiiToggleBtn(false);
+    showingRadii = false;
 
     if (data.total_risks === 0) {
-      showStatusMessage('info', 'All Clear — No collision threats detected within radius.');
+      showStatusMessage('info', '✓ All Clear — No collision threats detected within radius.');
     } else {
-      showStatusMessage('warning', `Detected ${data.total_risks} critical proximity pairs!`);
+      showStatusMessage('warning', `🚨 Detected ${data.total_risks} critical proximity pair${data.total_risks > 1 ? 's' : ''}!`);
     }
   } catch (err) {
     console.error('Error simulating collision:', err);
-    showStatusMessage('warning', 'Simulation failed. Check backend algorithm implementation.');
+    showStatusMessage('warning', '⚠ Simulation failed. Ensure backend algorithms are implemented.');
+  } finally {
+    setBtnLoading('btnSimulate', false);
+    setSystemBusy(false);
   }
 }
 
 /**
- * Fetches the serialised K-D Tree from backend.
+ * Fetches the serialised K-D Tree from the backend for split-plane visualization.
  */
 async function fetchTree() {
   try {
@@ -153,32 +226,37 @@ async function fetchTree() {
 }
 
 /**
- * Steps through K-D Tree partitioning plane depths.
+ * Steps through K-D Tree partitioning plane depths (cycles 0–4).
+ * Updates the depth badge with the active split axis (X/Y/Z).
  */
 function handleStepTreePlanes() {
   if (!currentTreeData) {
     showStatusMessage('warning', 'Generate satellites first to build the K-D Tree.');
     return;
   }
-  currentDepth = (currentDepth + 1) % 5;
-  document.getElementById('currentDepthLabel').textContent = currentDepth;
+  currentDepth = (currentDepth % 5) + 1;
+  updateDepthLabel(currentDepth);
   showSplittingPlanes(currentTreeData, currentDepth);
 }
 
 /**
- * Clears splitting planes from viewport.
+ * Resets all K-D Tree splitting planes from the 3D viewport.
  */
 function handleClearPlanes() {
   currentDepth = 0;
-  document.getElementById('currentDepthLabel').textContent = 0;
+  updateDepthLabel(0);
   clearPlanes();
 }
 
 /**
- * Executes full benchmarking suite comparing Brute Force vs K-D Tree.
+ * STEP 8-9: Executes the full benchmarking suite and renders the Chart.js graph.
+ * @param {number} radius - Danger threshold in km
  */
 async function handleRunBenchmark(radius) {
-  showStatusMessage('info', 'Running complexity benchmark suite (N=50 to 5000)...');
+  setBtnLoading('btnRunBenchmark', true);
+  setSystemBusy(true, 'BENCHMARKING…');
+  showStatusMessage('info', 'Running benchmark suite (N = 50 → 5000)… This may take a moment.');
+
   try {
     const res = await fetch('/api/benchmark', {
       method: 'POST',
@@ -187,18 +265,57 @@ async function handleRunBenchmark(radius) {
     });
     const data = await res.json();
 
-    if (data.results) {
+    if (data.results && data.results.length > 0) {
+      // Step 9: Render Chart.js comparison graph
       renderComparisonChart(data.results);
+
+      // Render complexity table if provided
+      if (data.complexity_table) {
+        renderComplexityTable(data.complexity_table);
+      }
+
+      // Update speedup from the largest N result
       const last = data.results[data.results.length - 1];
       if (last && last.speedup) {
-        updateLiveStats(satelliteCount, 0, Math.round(last.speedup));
+        updateLiveStats(satelliteCount, lastRiskPairs.length, Math.round(last.speedup));
       }
-      showStatusMessage('info', 'Benchmark completed. Complexity proof chart updated.');
+
+      showStatusMessage('info', '✓ Benchmark completed. Complexity proof chart updated.');
     } else if (data.error) {
       showStatusMessage('warning', `Benchmark pending: ${data.error}`);
     }
   } catch (err) {
     console.error('Benchmark failed:', err);
-    showStatusMessage('warning', 'Benchmark runner pending in python/analytics.py.');
+    showStatusMessage('warning', '⚠ Benchmark runner not yet implemented in python/analytics.py.');
+  } finally {
+    setBtnLoading('btnRunBenchmark', false);
+    setSystemBusy(false);
+  }
+}
+
+/**
+ * Toggles orbit animation on/off.
+ * Updates the button label to reflect the current state.
+ */
+function handleToggleAnimation() {
+  const isNowAnimating = toggleAnimation();
+  updateAnimToggleBtn(isNowAnimating);
+}
+
+/**
+ * Toggles danger radius sphere visualization around at-risk satellites.
+ * Only available after a simulation has been run.
+ */
+function handleToggleRadii() {
+  if (lastRiskPairs.length === 0) return;
+
+  showingRadii = !showingRadii;
+  updateRadiiToggleBtn(showingRadii);
+
+  if (showingRadii) {
+    showDangerRadiusSpheres(lastRiskPairs, lastRadius);
+  } else {
+    // Clear: pass empty array to clear
+    showDangerRadiusSpheres([], lastRadius);
   }
 }
