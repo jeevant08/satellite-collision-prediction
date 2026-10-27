@@ -1,0 +1,202 @@
+# =============================================================
+#  kdtree.py — Member 1's File
+#  TASK: Implement a 3D K-D Tree for spatial nearest-neighbour search
+# =============================================================
+#
+#  RUBRIC COVERAGE:
+#    (a) Data Structure Justification — YOU explain WHY K-D Tree
+#    (b) Implementation Strategy     — YOU explain implementation choices
+#    (c) Live Demo                   — the core search engine
+#    (d) Time Complexity             — O(N log N) build, O(log N) search
+#
+#  FACULTY QUESTIONS TO PREPARE:
+#
+#    Q: Why K-D Tree over a flat list/array?
+#    A: List = O(N²) all-pairs. K-D Tree = O(log N) radius search
+#       by pruning branches whose bounding box exceeds the radius.
+#
+#    Q: Why not a hash map / dictionary?
+#    A: Hash maps can't do spatial radius queries. They need exact keys.
+#       Spatial proximity requires geometric partitioning → K-D Tree.
+#
+#    Q: Why not a Quad-tree or Oct-tree?
+#    A: Quad-tree = 2D only. Oct-tree is similar to K-D Tree but
+#       K-D Tree is simpler to implement and equally efficient for 3D.
+#
+#    Q: What is the exact time complexity?
+#    A: Build : O(N log N)  — sort N items at each of log N levels
+#       Search: O(log N) avg — prune branches via splitting plane test
+#       Space : O(N)         — one node per satellite
+#
+#    Q: Mathematical proof of O(log N) search?
+#    A: Tree height h = log₂(N) (balanced via median split).
+#       At each node, check: |target[axis] - node[axis]| > radius?
+#       If YES → skip entire subtree (saves 2^(h-level) nodes).
+#       Worst case O(√N) in k=3 dimensions, but O(log N) in practice.
+#
+#  HOW TO CONTRIBUTE:
+#    git add python/kdtree.py
+#    git commit -m "[Member1] feat: implement build_kd_tree with median split"
+#    git commit -m "[Member1] feat: implement radius_search with branch pruning"
+# =============================================================
+
+from satellite import euclidean_3d
+
+# Axes cycle by depth: 0→x, 1→y, 2→z, 3→x ...
+AXES = ['x', 'y', 'z']
+
+
+# ── KD-Tree Node ─────────────────────────────────────────────
+class KDNode:
+    """
+    Represents one node in the K-D Tree.
+
+    Attributes:
+        point  : Satellite  — the satellite stored at this node (the median)
+        axis   : str        — splitting axis ('x', 'y', or 'z')
+        left   : KDNode|None — subtree with points LESS than median on axis
+        right  : KDNode|None — subtree with points GREATER than median on axis
+    """
+    def __init__(self, point, axis, left=None, right=None):
+        self.point = point
+        self.axis  = axis
+        self.left  = left
+        self.right = right
+
+    def __repr__(self):
+        return f"KDNode(id={self.point.id}, axis={self.axis})"
+
+
+# ── TODO (Member 1): Implement build_kd_tree ─────────────────
+def build_kd_tree(points: list, depth: int = 0) -> KDNode | None:
+    """
+    Recursively builds a balanced 3D K-D Tree from a list of satellites.
+
+    ALGORITHM:
+        1. If points is empty → return None  (base case)
+        2. axis = AXES[depth % 3]            (cycle x → y → z → x ...)
+        3. Sort points by satellite.axis value
+        4. median_idx = len(points) // 2
+        5. Create node with points[median_idx] as the splitting point
+        6. node.left  = build_kd_tree(points[:median_idx],      depth+1)
+        7. node.right = build_kd_tree(points[median_idx+1:],    depth+1)
+        8. Return node
+
+    WHY MEDIAN? Guarantees a balanced tree → height = log₂(N) →
+    ensures O(log N) search instead of O(N) worst case.
+
+    Time Complexity: O(N log N)
+      — sorting N elements at each of log(N) levels
+
+    Args:
+        points : list of Satellite objects
+        depth  : current recursion depth (default 0)
+
+    Returns:
+        KDNode | None
+    """
+    # TODO: implement this function
+    # HINT: sorted_pts = sorted(points, key=lambda s: getattr(s, axis))
+    raise NotImplementedError("Member 1: implement build_kd_tree")
+
+
+# ── TODO (Member 1): Implement radius_search ─────────────────
+def radius_search(node: KDNode | None,
+                  target,
+                  radius: float,
+                  depth: int = 0,
+                  results: list = None) -> list:
+    """
+    Finds all satellites within `radius` km of `target`.
+
+    ALGORITHM:
+        1. Base case: if node is None → return results
+        2. dist = euclidean_3d(target, node.point)
+        3. If dist <= radius AND node.point.id != target.id
+               → append node.point to results
+        4. axis_dist = abs(getattr(target, node.axis)
+                           - getattr(node.point, node.axis))
+        5. Decide near/far side:
+               near = left  if target[axis] < node.point[axis] else right
+               far  = the other subtree
+        6. Always recurse into near side
+        7. Recurse into far side ONLY IF axis_dist <= radius
+           (PRUNING: if axis_dist > radius, entire far subtree is out of range)
+
+    Time Complexity: O(log N) average — branch pruning skips subtrees
+
+    Args:
+        node    : current KDNode (start with root)
+        target  : Satellite we're searching FROM
+        radius  : danger threshold in km
+        depth   : current depth (to know the axis)
+        results : accumulator list (pass None → auto-initialised to [])
+
+    Returns:
+        list of Satellite objects within radius (excluding target itself)
+    """
+    if results is None:
+        results = []
+    # TODO: implement this function
+    raise NotImplementedError("Member 1: implement radius_search")
+
+
+# ── TODO (Member 1): Implement nearest_neighbor ──────────────
+def nearest_neighbor(node: KDNode | None,
+                     target,
+                     depth: int = 0,
+                     best: dict = None) -> dict:
+    """
+    Finds the single closest satellite to `target` in the K-D Tree.
+
+    ALGORITHM (same idea as radius_search, but track one best):
+        1. If node is None → return best
+        2. dist = euclidean_3d(target, node.point)
+        3. If dist < best['distance'] AND node.point.id != target.id
+               → update best = {'satellite': node.point, 'distance': dist}
+        4. axis_dist = abs(target[axis] - node.point[axis])
+        5. Search near side first
+        6. Search far side only if axis_dist < best['distance']
+        7. Return best
+
+    Args:
+        node   : current KDNode
+        target : query Satellite
+        depth  : current depth
+        best   : dict {'satellite': ..., 'distance': ...}
+
+    Returns:
+        dict {'satellite': Satellite, 'distance': float}
+    """
+    if best is None:
+        best = {'satellite': None, 'distance': float('inf')}
+    # TODO: implement this function
+    raise NotImplementedError("Member 1: implement nearest_neighbor")
+
+
+# ── HELPER: already implemented — do NOT modify ───────────────
+def get_tree_height(node: KDNode | None) -> int:
+    """Returns height of the K-D Tree. Used by the visualizer."""
+    if node is None:
+        return 0
+    return 1 + max(get_tree_height(node.left), get_tree_height(node.right))
+
+
+def tree_to_dict(node: KDNode | None) -> dict | None:
+    """
+    Serialises the K-D Tree to a nested dict for sending to the JS frontend.
+    Used by app.py → /api/tree endpoint.
+    """
+    if node is None:
+        return None
+    return {
+        "point": {
+            "id": node.point.id,
+            "x":  node.point.x,
+            "y":  node.point.y,
+            "z":  node.point.z,
+        },
+        "axis":  node.axis,
+        "left":  tree_to_dict(node.left),
+        "right": tree_to_dict(node.right),
+    }

@@ -1,0 +1,219 @@
+<!-- =============================================================
+  index.html — Member 4's File
+  TASK: 3-Panel Space Situational Awareness Dashboard Layout
+=============================================================
+
+  RUBRIC COVERAGE:
+    (c) Live Demo               — Full interactive UI for presentation
+    (e) Individual Contribution — Member 4 HTML structure & layout
+
+  FACULTY QUESTIONS TO PREPARE:
+    Q: Why use a 3-panel layout?
+    A: Separates user controls (Left), real-time 3D spatial context (Center),
+       and quantitative DSA metrics/priority rankings (Right) for maximum clarity.
+
+    Q: How does the UI handle edge cases?
+    A: Controls restrict invalid input, status alerts inform users when N=0, N=1,
+       or no threats exist within the specified radius.
+
+  HOW TO CONTRIBUTE:
+    git add templates/index.html
+    git commit -m "[Member4] feat: build 3-panel UI layout with glassmorphism dashboard"
+============================================================= -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AegisOrbit | Satellite Collision Prediction System</title>
+  
+  <!-- Google Fonts: Exo 2 & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/static/css/styles.css">
+  
+  <!-- CDN Dependencies: Three.js & Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="space-theme">
+
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div class="brand">
+      <div class="radar-pulse"></div>
+      <h1 class="nav-title">AEGIS<span class="highlight">ORBIT</span></h1>
+      <span class="badge">3D K-D Tree & Max-Heap Engine</span>
+    </div>
+    <div class="system-status" id="systemStatus">
+      <span class="status-dot online"></span>
+      <span class="status-text">SYSTEM READY</span>
+    </div>
+  </header>
+
+  <!-- Main 3-Panel Container -->
+  <main class="dashboard-grid">
+    
+    <!-- LEFT PANEL: Controls & Simulation Parameters -->
+    <aside class="panel left-panel glass-panel" id="controlsPanel">
+      <div class="panel-header">
+        <h2>Control Console</h2>
+        <span class="subtitle">Simulation Parameters</span>
+      </div>
+
+      <div class="control-group">
+        <label for="satelliteCount">
+          Satellite Count (N)
+          <span class="val-badge" id="satelliteCountVal">250</span>
+        </label>
+        <input type="range" id="satelliteCount" min="0" max="2500" step="25" value="250" class="slider">
+        <div class="slider-marks">
+          <span>0 (Edge)</span>
+          <span>1000</span>
+          <span>2500</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="dangerRadius">
+          Danger Radius (km)
+          <span class="val-badge" id="dangerRadiusVal">800 km</span>
+        </label>
+        <input type="range" id="dangerRadius" min="0" max="3000" step="50" value="800" class="slider">
+        <div class="slider-marks">
+          <span>0 km</span>
+          <span>1500 km</span>
+          <span>3000 km</span>
+        </div>
+      </div>
+
+      <div class="button-stack">
+        <button id="btnGenerate" class="btn btn-secondary">
+          <span class="btn-icon">⚡</span> Generate Satellites
+        </button>
+        <button id="btnSimulate" class="btn btn-primary glow-btn">
+          <span class="btn-icon">🛰️</span> Run Collision Check
+        </button>
+      </div>
+
+      <hr class="panel-divider">
+
+      <div class="panel-header">
+        <h3>K-D Tree Partitioning</h3>
+        <span class="subtitle">Spatial Visualizer</span>
+      </div>
+
+      <div class="button-stack">
+        <button id="btnStepTree" class="btn btn-outline">
+          <span class="btn-icon">📐</span> Step Split Planes
+        </button>
+        <button id="btnClearPlanes" class="btn btn-text">
+          Reset Partition Planes
+        </button>
+      </div>
+
+      <div class="tree-depth-indicator">
+        <span>Visualized Depth: </span>
+        <span id="currentDepthLabel" class="bold-stat">0</span>
+      </div>
+
+      <hr class="panel-divider">
+
+      <div class="panel-header">
+        <h3>DSA Benchmarks</h3>
+        <span class="subtitle">O(N²) vs O(N log N)</span>
+      </div>
+
+      <button id="btnRunBenchmark" class="btn btn-accent">
+        <span class="btn-icon">📊</span> Run Benchmark Suite
+      </button>
+
+      <!-- Status banner for edge cases -->
+      <div id="statusAlert" class="status-alert hidden"></div>
+    </aside>
+
+    <!-- CENTER PANEL: 3D Orbital Space Viewport -->
+    <section class="center-panel viewport-container" id="viewportContainer">
+      <div id="canvas3d" class="webgl-canvas"></div>
+      
+      <!-- Overlay controls on viewport -->
+      <div class="viewport-hud">
+        <div class="hud-item">
+          <span class="hud-label">CAMERA:</span>
+          <span class="hud-val">OrbitControls (Rotate / Zoom)</span>
+        </div>
+        <div class="hud-legend">
+          <span class="legend-dot active-dot"></span> Active
+          <span class="legend-dot debris-dot"></span> Debris
+          <span class="legend-dot rocket-dot"></span> Rocket Body
+          <span class="legend-dot risk-dot"></span> Collision Risk
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: Risk Dashboard & Live Metrics -->
+    <aside class="panel right-panel glass-panel" id="metricsPanel">
+      
+      <!-- Live Counter Metrics -->
+      <div class="panel-header">
+        <h2>Live Risk Analysis</h2>
+        <span class="subtitle">Max-Heap Ranked Prioritization</span>
+      </div>
+
+      <div class="stats-cards">
+        <div class="stat-card">
+          <span class="stat-label">Active Objects</span>
+          <span class="stat-number" id="statObjectCount">0</span>
+        </div>
+        <div class="stat-card warning">
+          <span class="stat-label">Critical Pairs</span>
+          <span class="stat-number" id="statRiskCount">0</span>
+        </div>
+        <div class="stat-card highlight">
+          <span class="stat-label">Speedup Factor</span>
+          <span class="stat-number" id="statSpeedup">--</span>
+        </div>
+      </div>
+
+      <!-- Top 10 Collision Risks from Max-Heap -->
+      <div class="risk-section">
+        <div class="section-title">
+          <h3>Top 10 Critical Risks</h3>
+          <span class="badge red-badge">Max-Heap (1/dist)</span>
+        </div>
+        <div class="risk-list" id="riskList">
+          <div class="empty-state">
+            <span class="empty-icon">🛡️</span>
+            <p>Run collision check to identify proximity threats.</p>
+          </div>
+        </div>
+      </div>
+
+      <hr class="panel-divider">
+
+      <!-- Benchmark Performance Chart -->
+      <div class="chart-section">
+        <div class="section-title">
+          <h3>Time Complexity Proof</h3>
+          <span class="badge blue-badge">O(N²) vs O(N log N)</span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="benchmarkChart"></canvas>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- JavaScript Modules -->
+  <script type="module" src="/static/js/visualizer3d.js"></script>
+  <script type="module" src="/static/js/treeVisualizer.js"></script>
+  <script type="module" src="/static/js/dashboard.js"></script>
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>
