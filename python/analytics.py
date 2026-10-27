@@ -29,12 +29,13 @@
 # =============================================================
 
 import time
+import math
 import sys
 import os
 
 sys.path.append(os.path.dirname(__file__))
 
-from satellite import generate_satellites
+from satellite import generate_satellites, euclidean_3d
 from kdtree   import build_kd_tree, radius_search
 from heap     import MaxHeap
 from bruteforce import brute_force_collision_check, count_comparisons
@@ -74,11 +75,88 @@ def run_benchmark(n: int, radius: float) -> dict:
             'top_risks'       : list    ← top 10 from MaxHeap (most dangerous)
         }
     """
-    # TODO: implement this function
-    # HINT: use time.time() before/after each section, multiply diff by 1000
-    # HINT: risk_pairs should be serialisable: {'sat1_id', 'sat1_name',
-    #        'sat2_id', 'sat2_name', 'distance'} — not raw Satellite objects
-    raise NotImplementedError("Member 3: implement run_benchmark(n, radius)")
+    if n <= 0:
+        return {
+            'n': 0,
+            'bf_time_ms': 0.0,
+            'bf_comparisons': 0,
+            'kd_build_ms': 0.0,
+            'kd_search_ms': 0.0,
+            'kd_total_ms': 0.0,
+            'speedup': 1.0,
+            'risk_pairs': [],
+            'top_risks': []
+        }
+
+    # Step 1: Generate n satellites
+    sats = generate_satellites(n)
+
+    # Step 2: Brute-force baseline
+    bf_res = brute_force_collision_check(sats, radius)
+    bf_time_ms = bf_res['time_ms']
+    bf_comparisons = bf_res['comparisons']
+
+    # Step 3: Build K-D Tree
+    t_build_start = time.perf_counter()
+    tree = build_kd_tree(sats)
+    t_build_end = time.perf_counter()
+    kd_build_ms = (t_build_end - t_build_start) * 1000.0
+
+    # Step 4 & 5: Run radius search for each satellite and insert unique pairs into MaxHeap
+    seen_pairs = set()
+    heap = MaxHeap()
+    risk_pairs = []
+
+    t_search_start = time.perf_counter()
+    if tree is not None and radius > 0 and len(sats) > 1:
+        for sat in sats:
+            neighbors = radius_search(tree, sat, radius)
+            for neighbor in neighbors:
+                pair_key = tuple(sorted([sat.id, neighbor.id]))
+                if pair_key not in seen_pairs:
+                    seen_pairs.add(pair_key)
+                    dist = euclidean_3d(sat, neighbor)
+                    heap.insert({
+                        'sat1': sat,
+                        'sat2': neighbor,
+                        'distance': dist
+                    })
+                    risk_pairs.append({
+                        'sat1_id': sat.id,
+                        'sat1_name': sat.name,
+                        'sat2_id': neighbor.id,
+                        'sat2_name': neighbor.name,
+                        'distance': round(dist, 2)
+                    })
+    t_search_end = time.perf_counter()
+    kd_search_ms = (t_search_end - t_search_start) * 1000.0
+
+    kd_total_ms = kd_build_ms + kd_search_ms
+    speedup = (bf_time_ms / kd_total_ms) if kd_total_ms > 0 else 1.0
+
+    # Step 5: Extract top 10 most dangerous risks from MaxHeap (smallest distance = highest priority)
+    top_risks = []
+    top_items = heap.extract_all() if heap.size > 0 else []
+    for item in top_items[:10]:
+        top_risks.append({
+            'sat1_id': item['sat1'].id,
+            'sat1_name': item['sat1'].name,
+            'sat2_id': item['sat2'].id,
+            'sat2_name': item['sat2'].name,
+            'distance': round(item['distance'], 2)
+        })
+
+    return {
+        'n': n,
+        'bf_time_ms': round(bf_time_ms, 3),
+        'bf_comparisons': bf_comparisons,
+        'kd_build_ms': round(kd_build_ms, 3),
+        'kd_search_ms': round(kd_search_ms, 3),
+        'kd_total_ms': round(kd_total_ms, 3),
+        'speedup': round(speedup, 2),
+        'risk_pairs': risk_pairs,
+        'top_risks': top_risks
+    }
 
 
 # ── TODO (Member 3): Implement run_full_benchmark_suite ──────
@@ -93,8 +171,10 @@ def run_full_benchmark_suite(radius: float) -> list:
     Returns:
         list of benchmark dicts (one per N in BENCHMARK_SIZES)
     """
-    # TODO: implement — loop over BENCHMARK_SIZES and collect results
-    raise NotImplementedError("Member 3: implement run_full_benchmark_suite")
+    results = []
+    for n in BENCHMARK_SIZES:
+        results.append(run_benchmark(n, radius))
+    return results
 
 
 # ── TODO (Member 3): Implement get_complexity_table() ────────
@@ -113,8 +193,28 @@ def get_complexity_table() -> list:
             { 'operation': 'Space Complexity', ... },
         ]
     """
-    # TODO: return the hardcoded complexity data as a list of dicts
-    raise NotImplementedError("Member 3: implement get_complexity_table()")
+    return [
+        {
+            'operation': 'Build / Preprocessing',
+            'brute_force': 'O(1)',
+            'kd_tree': 'O(N log N)'
+        },
+        {
+            'operation': 'Single Radius Query',
+            'brute_force': 'O(N)',
+            'kd_tree': 'O(log N) avg'
+        },
+        {
+            'operation': 'All-pairs Collision Check',
+            'brute_force': 'O(N²)',
+            'kd_tree': 'O(N log N)'
+        },
+        {
+            'operation': 'Space Complexity',
+            'brute_force': 'O(N)',
+            'kd_tree': 'O(N)'
+        }
+    ]
 
 
 # ── TODO (Member 3): Implement get_live_stats(n, kd_comps) ───
@@ -136,5 +236,30 @@ def get_live_stats(n: int, kd_comps: int) -> dict:
             'kd_formula'     : str     ← "≈ log₂(N) = 10"
         }
     """
-    # TODO: implement
-    raise NotImplementedError("Member 3: implement get_live_stats(n, kd_comps)")
+    bf_comparisons = count_comparisons(n)
+    kd_comparisons = max(0, kd_comps)
+    comps_saved = max(0, bf_comparisons - kd_comparisons)
+
+    if kd_comparisons > 0:
+        ratio = bf_comparisons / kd_comparisons
+        speedup_label = f"{round(ratio)}x faster"
+    elif bf_comparisons > 0:
+        speedup_label = f"{bf_comparisons}x faster"
+    else:
+        speedup_label = "1x"
+
+    bf_formula = f"N*(N-1)/2 = {bf_comparisons:,}"
+    if n > 0:
+        log2_val = round(math.log2(n))
+        kd_formula = f"≈ log₂(N) = {log2_val}"
+    else:
+        kd_formula = "≈ log₂(N) = 0"
+
+    return {
+        'bf_comparisons': bf_comparisons,
+        'kd_comparisons': kd_comparisons,
+        'comps_saved': comps_saved,
+        'speedup_label': speedup_label,
+        'bf_formula': bf_formula,
+        'kd_formula': kd_formula
+    }
