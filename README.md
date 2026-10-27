@@ -1,7 +1,7 @@
 #  Satellite Collision Prediction System
 
 
-A real-time **Space Situational Awareness (SSA)** system that predicts and prioritizes orbital satellite collisions. Built for **DSA Lab Evaluation 3 (10 Marks)** using a **3D K-D Tree** for spatial nearest-neighbor search and an **Array-backed Max-Heap Priority Queue** for inverse-distance risk ranking.
+A real-time **Space Situational Awareness (SSA)** system that predicts and prioritizes orbital satellite collisions. Built using a **3D K-D Tree** for spatial nearest-neighbor search and an **Array-backed Max-Heap Priority Queue** for inverse-distance risk ranking.
 
 ---
 
@@ -18,7 +18,7 @@ A real-time **Space Situational Awareness (SSA)** system that predicts and prior
 
 ---
 
-## 🛡️ Edge Cases Handled
+##  Edge Cases Handled
 1. **$N = 0$ Satellites**: UI displays empty space with alert banner.
 2. **$N = 1$ Satellite**: No pairs possible; reports "No collision risks possible."
 3. **Danger Radius = 0 km**: 0 risks detected; prevents division-by-zero in priority calculation.
