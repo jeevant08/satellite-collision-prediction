@@ -27,6 +27,26 @@ import time
 from satellite import euclidean_3d
 
 
+# ── Helper to extract an order-independent pair key ───────────
+def _extract_pair_key(pair):
+    """Helper to extract an order-independent (id1, id2) identifier from any pair representation."""
+    if isinstance(pair, dict):
+        if 'sat1' in pair and 'sat2' in pair:
+            s1 = pair['sat1']
+            s2 = pair['sat2']
+            id1 = s1.id if hasattr(s1, 'id') else s1.get('id') if isinstance(s1, dict) else s1
+            id2 = s2.id if hasattr(s2, 'id') else s2.get('id') if isinstance(s2, dict) else s2
+            return tuple(sorted([id1, id2]))
+        if 'sat1_id' in pair and 'sat2_id' in pair:
+            return tuple(sorted([pair['sat1_id'], pair['sat2_id']]))
+    elif isinstance(pair, (tuple, list)) and len(pair) >= 2:
+        s1, s2 = pair[0], pair[1]
+        id1 = s1.id if hasattr(s1, 'id') else s1.get('id') if isinstance(s1, dict) else s1
+        id2 = s2.id if hasattr(s2, 'id') else s2.get('id') if isinstance(s2, dict) else s2
+        return tuple(sorted([id1, id2]))
+    return None
+
+
 # ── TODO (Member 3): Implement brute_force_collision_check ───
 def brute_force_collision_check(satellites: list, radius: float) -> dict:
     """
@@ -60,9 +80,33 @@ def brute_force_collision_check(satellites: list, radius: float) -> dict:
             'time_ms'    : float     ← wall-clock time in milliseconds
         }
     """
-    # TODO: implement this function
-    # HINT: use time.time() before and after → multiply diff by 1000 for ms
-    raise NotImplementedError("Member 3: implement brute_force_collision_check")
+    start_time = time.perf_counter()
+
+    comparisons = 0
+    pairs = []
+    n = len(satellites)
+
+    if n >= 2:
+        for i in range(n):
+            sat_i = satellites[i]
+            for j in range(i + 1, n):
+                comparisons += 1
+                dist = euclidean_3d(sat_i, satellites[j])
+                if radius > 0 and dist <= radius:
+                    pairs.append({
+                        'sat1': sat_i,
+                        'sat2': satellites[j],
+                        'distance': dist
+                    })
+
+    end_time = time.perf_counter()
+    time_ms = (end_time - start_time) * 1000.0
+
+    return {
+        'pairs': pairs,
+        'comparisons': comparisons,
+        'time_ms': round(time_ms, 3)
+    }
 
 
 # ── TODO (Member 3): Implement count_comparisons(n) ─────────
@@ -84,8 +128,9 @@ def count_comparisons(n: int) -> int:
     Returns:
         int: exact comparison count
     """
-    # TODO: one line — just return the formula
-    raise NotImplementedError("Member 3: implement count_comparisons(n)")
+    if n < 2:
+        return 0
+    return n * (n - 1) // 2
 
 
 # ── TODO (Member 3): Implement verify_results ────────────────
@@ -109,7 +154,31 @@ def verify_results(bf_pairs: list, kd_pairs: list) -> dict:
             'extra_in_kd'   : list    ← pairs KD found but BF didn't
         }
     """
-    # TODO: implement this function
-    # HINT: convert each pair to a frozenset of ids for easy comparison
-    # e.g. set of frozenset({sat1.id, sat2.id}) for both lists, then compare
-    raise NotImplementedError("Member 3: implement verify_results")
+    bf_map = {}
+    for p in bf_pairs:
+        key = _extract_pair_key(p)
+        if key is not None:
+            bf_map[key] = p
+
+    kd_map = {}
+    for p in kd_pairs:
+        key = _extract_pair_key(p)
+        if key is not None:
+            kd_map[key] = p
+
+    bf_keys = set(bf_map.keys())
+    kd_keys = set(kd_map.keys())
+
+    missing_keys = bf_keys - kd_keys
+    extra_keys = kd_keys - bf_keys
+
+    missing_in_kd = [bf_map[k] for k in missing_keys]
+    extra_in_kd = [kd_map[k] for k in extra_keys]
+
+    return {
+        'match': len(missing_keys) == 0 and len(extra_keys) == 0,
+        'bf_count': len(bf_pairs),
+        'kd_count': len(kd_pairs),
+        'missing_in_kd': missing_in_kd,
+        'extra_in_kd': extra_in_kd
+    }
